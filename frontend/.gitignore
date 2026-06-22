@@ -15,7 +15,6 @@ logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
@@ -23,7 +22,7 @@ lerna-debug.log*
 *.local
 
 # IDE / Editor
-.vscode/*
+.vscode/
 !.vscode/extensions.json
 .idea/
 
@@ -38,8 +37,4 @@ Thumbs.db
 *.sln
 
 # Temporary files
-<<<<<<< HEAD
 *.sw?
-=======
-*.sw?
->>>>>>> 43b37e22045ca8d7b7b2645c68768ae3494c30d5
