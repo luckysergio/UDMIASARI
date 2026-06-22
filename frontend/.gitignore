@@ -38,4 +38,8 @@ Thumbs.db
 *.sln
 
 # Temporary files
+<<<<<<< HEAD
 *.sw?
+=======
+*.sw?
+>>>>>>> 43b37e22045ca8d7b7b2645c68768ae3494c30d5
