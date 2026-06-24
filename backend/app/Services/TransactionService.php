@@ -8,14 +8,35 @@ use App\Models\Inventory;
 use App\Models\Transaction;
 use App\Models\ProductMovement;
 use App\Models\TransactionDetail;
+use App\Events\DashboardStatsUpdated; // Import event
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 
 class TransactionService
 {
+    protected DashboardBroadcastService $broadcastService;
+
+    public function __construct(DashboardBroadcastService $broadcastService)
+    {
+        $this->broadcastService = $broadcastService;
+    }
+
+    /**
+     * Trigger dashboard update
+     */
+    private function triggerDashboardUpdate(): void
+    {
+        try {
+            $this->broadcastService->broadcast();
+        } catch (\Exception $e) {
+            Log::error('Failed to broadcast dashboard update: ' . $e->getMessage());
+        }
+    }
+
     /**
      * List
      */
@@ -182,7 +203,6 @@ class TransactionService
 
                 $inventory->update(['stock' => $stockAfter]);
 
-                // 🔥 Perbaiki: gunakan reference_type dan reference_id
                 ProductMovement::create([
                     'inventory_id' => $inventory->id,
                     'product_id' => $product->id,
@@ -196,6 +216,9 @@ class TransactionService
                     'note' => 'Transaksi ' . $transaction->invoice_no,
                 ]);
             }
+
+            // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+            $this->triggerDashboardUpdate();
 
             return $this->detail($transaction->id);
         });
@@ -224,6 +247,9 @@ class TransactionService
             $transaction->grand_total = $transaction->subtotal - $transaction->discount + $transaction->tax;
             $transaction->save();
         }
+
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        $this->triggerDashboardUpdate();
         
         return $this->detail($transaction->id);
     }
@@ -314,6 +340,9 @@ class TransactionService
 
             $transaction->update(['status' => $status]);
 
+            // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+            $this->triggerDashboardUpdate();
+
             return $this->detail($transaction->id);
         });
     }
@@ -331,6 +360,9 @@ class TransactionService
         }
         
         $transaction->delete();
+
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        $this->triggerDashboardUpdate();
     }
 
     /**

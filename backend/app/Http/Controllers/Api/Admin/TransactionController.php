@@ -171,4 +171,84 @@ class TransactionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Update transaction (general update)
+     */
+    public function update(Request $request, int $id)
+    {
+        try {
+            $user = Auth::guard('api')->user();
+            
+            // 🔥 Cek akses: customer tidak bisa update transaksi
+            if ($user->role === 'customer') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengupdate transaksi',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'customer_name' => 'nullable|string|max:100',
+                'customer_phone' => 'nullable|string|max:20',
+                'delivery_type' => 'nullable|in:pickup,delivery',
+                'delivery_address' => 'nullable|string',
+                'discount' => 'nullable|numeric|min:0',
+                'tax' => 'nullable|numeric|min:0',
+                'subtotal' => 'nullable|numeric|min:0',
+                'note' => 'nullable|string',
+            ]);
+
+            $transaction = $this->service->update($id, $validated, $user->id);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Transaksi berhasil diupdate',
+                'data' => $transaction
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Transaction update error: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete transaction
+     */
+    public function destroy(int $id)
+    {
+        try {
+            $user = Auth::guard('api')->user();
+            
+            // 🔥 Cek akses: customer tidak bisa hapus transaksi
+            if ($user->role === 'customer') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Anda tidak memiliki akses untuk menghapus transaksi',
+                ], 403);
+            }
+
+            $this->service->delete($id);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Transaksi berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Transaction destroy error: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

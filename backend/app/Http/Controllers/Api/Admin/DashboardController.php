@@ -5,81 +5,84 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
-    protected DashboardService $service;
-
-    public function __construct(DashboardService $service)
-    {
-        $this->service = $service;
-    }
+    public function __construct(
+        protected DashboardService $service
+    ) {}
 
     /**
-     * Get main dashboard data
+     * Dashboard utama
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         try {
-            $data = $this->service->getDashboardData($request);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Data dashboard berhasil diambil',
-                'data' => $data,
+                'data' => $this->service->getDashboardData($request),
             ]);
-        } catch (\Exception $e) {
-            Log::error('Dashboard index error: ' . $e->getMessage());
-            Log::error('Dashboard index trace: ' . $e->getTraceAsString());
-            
+        } catch (\Throwable $e) {
+
+            Log::error('Dashboard index error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'status' => false,
-                'message' => 'Gagal mengambil data dashboard: ' . $e->getMessage(),
+                'message' => 'Gagal mengambil data dashboard',
             ], 500);
         }
     }
 
     /**
-     * Get monthly revenue chart
+     * Chart pendapatan bulanan
      */
-    public function monthlyRevenue(Request $request)
+    public function monthlyRevenue(Request $request): JsonResponse
     {
         try {
-            $data = $this->service->getMonthlyRevenueChart($request);
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Data chart pendapatan bulanan berhasil diambil',
-                'data' => $data,
+                'data' => $this->service->getMonthlyRevenueChart($request),
             ]);
-        } catch (\Exception $e) {
-            Log::error('Monthly revenue chart error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+
+            Log::error('Monthly revenue chart error', [
+                'message' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'status' => false,
-                'message' => 'Gagal mengambil data chart: ' . $e->getMessage(),
+                'message' => 'Gagal mengambil data chart pendapatan bulanan',
             ], 500);
         }
     }
 
     /**
-     * Get daily revenue chart for current month
+     * Chart pendapatan harian
      */
-    public function dailyRevenue()
+    public function dailyRevenue(): JsonResponse
     {
         try {
-            $data = $this->service->getDailyRevenueChart();
-            
             return response()->json([
                 'status' => true,
                 'message' => 'Data chart pendapatan harian berhasil diambil',
-                'data' => $data,
+                'data' => $this->service->getDailyRevenueChart(),
             ]);
-        } catch (\Exception $e) {
-            Log::error('Daily revenue chart error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+
+            Log::error('Daily revenue chart error', [
+                'message' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'status' => false,
-                'message' => 'Gagal mengambil data chart: ' . $e->getMessage(),
+                'message' => 'Gagal mengambil data chart pendapatan harian',
             ], 500);
         }
     }

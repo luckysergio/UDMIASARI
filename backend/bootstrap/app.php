@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Cache\RateLimiting\Limit;
 
@@ -13,6 +14,7 @@ return Application::configure(
 )
 
     ->withRouting(
+        channels: __DIR__.'/../routes/channels.php',
         web: __DIR__ . '/../routes/web.php',
         api: __DIR__ . '/../routes/api.php',
         commands: __DIR__ . '/../routes/console.php',
@@ -31,6 +33,11 @@ return Application::configure(
     })
 
     ->booting(function () {
+
+        // 🔥 Tambahkan ini
+        Broadcast::routes([
+            'middleware' => ['auth:api']
+        ]);
 
         RateLimiter::for('login', function (Request $request) {
 
