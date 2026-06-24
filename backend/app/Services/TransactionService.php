@@ -8,7 +8,8 @@ use App\Models\Inventory;
 use App\Models\Transaction;
 use App\Models\ProductMovement;
 use App\Models\TransactionDetail;
-use App\Events\DashboardStatsUpdated; // Import event
+use App\Events\DashboardStatsUpdated;
+use App\Events\NewTransactionNotification;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -19,10 +20,14 @@ use Illuminate\Support\Facades\Log;
 class TransactionService
 {
     protected DashboardBroadcastService $broadcastService;
+    protected NotificationService $notificationService;
 
-    public function __construct(DashboardBroadcastService $broadcastService)
-    {
+    public function __construct(
+        DashboardBroadcastService $broadcastService,
+        NotificationService $notificationService
+    ) {
         $this->broadcastService = $broadcastService;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -38,7 +43,40 @@ class TransactionService
     }
 
     /**
-     * List
+     * Trigger new order notification
+     */
+    private function triggerOrderNotification(Transaction $transaction): void
+    {
+        try {
+            $notificationData = [
+                'id' => $transaction->id,
+                'invoice_no' => $transaction->invoice_no,
+                'customer_name' => $transaction->customer_name ?? 'Customer',
+                'grand_total' => $transaction->grand_total,
+                'status' => $transaction->status,
+                'created_at' => $transaction->created_at->format('d/m/Y H:i'),
+                'message' => "Pesanan baru dari {$transaction->customer_name} dengan invoice {$transaction->invoice_no}",
+                'type' => 'new_order',
+            ];
+
+            // Simpan ke cache
+            $this->notificationService->addNotification($notificationData);
+            Log::info('💾 Notification saved to cache', [
+                'invoice' => $transaction->invoice_no,
+                'id' => $transaction->id
+            ]);
+
+            // Broadcast via WebSocket
+            broadcast(new NewTransactionNotification($notificationData));
+            Log::info('🔔 Order notification broadcasted', ['invoice' => $transaction->invoice_no]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Failed to broadcast order notification: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all transactions
      */
     public function getAll(Request $request): LengthAwarePaginator
     {
@@ -94,7 +132,7 @@ class TransactionService
     }
 
     /**
-     * Detail
+     * Get transaction detail
      */
     public function detail(int $id): Transaction
     {
@@ -113,6 +151,11 @@ class TransactionService
     public function create(array $data, User $user): Transaction
     {
         return DB::transaction(function () use ($data, $user) {
+            Log::info('📝 Creating new transaction...', [
+                'user' => $user->id,
+                'items' => count($data['items'])
+            ]);
+
             $productIds = collect($data['items'])->pluck('product_id');
 
             if ($productIds->count() !== $productIds->unique()->count()) {
@@ -184,6 +227,11 @@ class TransactionService
                 'created_by' => $user->id,
             ]);
 
+            Log::info('✅ Transaction created', [
+                'id' => $transaction->id,
+                'invoice' => $transaction->invoice_no
+            ]);
+
             foreach ($data['items'] as $item) {
                 $product = $products[$item['product_id']];
                 $inventory = Inventory::where('product_id', $product->id)
@@ -217,6 +265,9 @@ class TransactionService
                 ]);
             }
 
+            // 🔥 TRIGGER NOTIFICATION FOR NEW ORDER
+            $this->triggerOrderNotification($transaction);
+
             // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
             $this->triggerDashboardUpdate();
 
@@ -230,6 +281,11 @@ class TransactionService
     public function update(int $id, array $data, int $userId): Transaction
     {
         $transaction = Transaction::findOrFail($id);
+        
+        Log::info('📝 Updating transaction', [
+            'id' => $id,
+            'user' => $userId
+        ]);
         
         $transaction->update([
             'customer_name' => $data['customer_name'] ?? $transaction->customer_name,
@@ -255,11 +311,17 @@ class TransactionService
     }
 
     /**
-     * Update Status
+     * Update Transaction Status
      */
     public function updateStatus(int $id, string $status, int $userId): Transaction
     {
         return DB::transaction(function () use ($id, $status, $userId) {
+            Log::info('📝 Updating transaction status', [
+                'id' => $id,
+                'status' => $status,
+                'user' => $userId
+            ]);
+
             $allowedStatus = [
                 'dipesan',
                 'diproses',
@@ -275,6 +337,11 @@ class TransactionService
 
             $transaction = Transaction::with('details')->findOrFail($id);
             $oldStatus = $transaction->status;
+
+            Log::info('Transaction status change', [
+                'from' => $oldStatus,
+                'to' => $status
+            ]);
 
             /**
              * AKSI BATALKAN
@@ -343,6 +410,30 @@ class TransactionService
             // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
             $this->triggerDashboardUpdate();
 
+            // 🔥 Notifikasi jika status menjadi selesai
+            if ($status === 'selesai' && $oldStatus !== 'selesai') {
+                try {
+                    $notificationData = [
+                        'id' => $transaction->id,
+                        'invoice_no' => $transaction->invoice_no,
+                        'customer_name' => $transaction->customer_name ?? 'Customer',
+                        'grand_total' => $transaction->grand_total,
+                        'status' => $transaction->status,
+                        'created_at' => $transaction->created_at->format('d/m/Y H:i'),
+                        'message' => "Pesanan {$transaction->invoice_no} telah selesai",
+                        'type' => 'order_completed',
+                    ];
+                    
+                    $this->notificationService->addNotification($notificationData);
+                    broadcast(new NewTransactionNotification($notificationData));
+                    Log::info('🔔 Order completed notification sent', [
+                        'invoice' => $transaction->invoice_no
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('❌ Failed to send order completed notification: ' . $e->getMessage());
+                }
+            }
+
             return $this->detail($transaction->id);
         });
     }
@@ -352,6 +443,8 @@ class TransactionService
      */
     public function delete(int $id): void
     {
+        Log::info('📝 Deleting transaction', ['id' => $id]);
+
         $transaction = Transaction::findOrFail($id);
         
         // Cek apakah transaksi sudah memiliki pembayaran
@@ -366,7 +459,7 @@ class TransactionService
     }
 
     /**
-     * Generate Invoice
+     * Generate Invoice Number
      */
     private function generateInvoice(): string
     {

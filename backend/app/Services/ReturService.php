@@ -8,15 +8,37 @@ use App\Models\ReturDetail;
 use App\Models\Transaction;
 use App\Models\Inventory;
 use App\Models\ProductMovement;
+use App\Events\DashboardStatsUpdated; // Import event
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage; // 🔥 Tambahkan ini
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ReturService
 {
+    protected DashboardBroadcastService $broadcastService;
+
+    public function __construct(DashboardBroadcastService $broadcastService)
+    {
+        $this->broadcastService = $broadcastService;
+    }
+
+    /**
+     * Trigger dashboard update
+     */
+    private function triggerDashboardUpdate(string $action): void
+    {
+        try {
+            Log::info('🔄 Triggering dashboard update after retur: ' . $action);
+            $this->broadcastService->broadcast();
+            Log::info('✅ Dashboard update triggered successfully for retur: ' . $action);
+        } catch (\Exception $e) {
+            Log::error('❌ Failed to trigger dashboard update for retur ' . $action . ': ' . $e->getMessage());
+        }
+    }
+
     public function getAll(Request $request)
     {
         $query = Retur::with([
@@ -128,6 +150,9 @@ class ReturService
                 'total_refund' => $totalRefund
             ]);
 
+            // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+            $this->triggerDashboardUpdate('retur_created_' . $retur->id);
+
             return $this->detail($retur->id);
         });
     }
@@ -135,6 +160,11 @@ class ReturService
     public function approve(int $id, int $adminId)
     {
         return DB::transaction(function () use ($id, $adminId) {
+            Log::info('Approving retur', [
+                'id' => $id,
+                'admin_id' => $adminId
+            ]);
+
             $retur = Retur::findOrFail($id);
             
             // Untuk retur tipe refund, update stok
@@ -178,12 +208,20 @@ class ReturService
                 'type' => $retur->type
             ]);
 
+            // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+            $this->triggerDashboardUpdate('retur_approved_' . $retur->id);
+
             return $retur->fresh();
         });
     }
 
     public function reject(int $id, string $reason)
     {
+        Log::info('Rejecting retur', [
+            'id' => $id,
+            'reason' => $reason
+        ]);
+
         $retur = Retur::findOrFail($id);
 
         $retur->update([
@@ -191,12 +229,21 @@ class ReturService
             'reject_reason' => $reason,
         ]);
 
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        $this->triggerDashboardUpdate('retur_rejected_' . $retur->id);
+
         return $retur->fresh();
     }
 
     public function sendReplacement(int $id, string $resi, int $userId)
     {
         return DB::transaction(function () use ($id, $resi, $userId) {
+            Log::info('Sending replacement', [
+                'id' => $id,
+                'resi' => $resi,
+                'user_id' => $userId
+            ]);
+
             $retur = Retur::with('details')->findOrFail($id);
 
             // Validasi: hanya exchange yang bisa dikirim penggantinya
@@ -249,18 +296,28 @@ class ReturService
                 'resi' => $resi
             ]);
 
+            // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+            $this->triggerDashboardUpdate('retur_replacement_sent_' . $retur->id);
+
             return $retur->fresh();
         });
     }
 
     public function complete(int $id)
     {
+        Log::info('Completing retur', [
+            'id' => $id
+        ]);
+
         $retur = Retur::findOrFail($id);
 
         $retur->update([
             'status' => 'completed',
             'completed_at' => now(),
         ]);
+
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        $this->triggerDashboardUpdate('retur_completed_' . $retur->id);
 
         return $retur->fresh();
     }
@@ -270,6 +327,11 @@ class ReturService
      */
     public function update(int $id, array $data): Retur
     {
+        Log::info('Updating retur', [
+            'id' => $id,
+            'data' => $data
+        ]);
+
         $retur = Retur::findOrFail($id);
         
         // Hanya retur dengan status pending yang bisa diupdate
@@ -280,6 +342,9 @@ class ReturService
         $retur->update([
             'reason' => $data['reason'] ?? $retur->reason,
         ]);
+
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        $this->triggerDashboardUpdate('retur_updated_' . $retur->id);
         
         return $retur->fresh();
     }
@@ -289,6 +354,10 @@ class ReturService
      */
     public function delete(int $id): void
     {
+        Log::info('Deleting retur', [
+            'id' => $id
+        ]);
+
         $retur = Retur::findOrFail($id);
         
         // Hanya retur dengan status pending yang bisa dihapus
@@ -303,6 +372,9 @@ class ReturService
         }
         
         $retur->delete();
+
+        // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
+        $this->triggerDashboardUpdate('retur_deleted_' . $id);
     }
 
     private function generateNo()

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Admin\PaymentController;
 use App\Http\Controllers\Api\Admin\ProductMovementController;
 use App\Http\Controllers\Api\Admin\ReturController;
 use App\Http\Controllers\Api\Admin\TransactionController;
+use App\Http\Controllers\Api\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,10 @@ Route::middleware([
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications/clear', [NotificationController::class, 'clearAll']);
 
     /*
     |--------------------------------------------------------------------------

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\ReturService;
+use App\Services\DashboardBroadcastService; // Import
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,11 +13,14 @@ use Illuminate\Support\Facades\Log;
 class ReturController extends Controller
 {
     protected ReturService $service;
+    protected DashboardBroadcastService $broadcastService;
 
     public function __construct(
-        ReturService $service
+        ReturService $service,
+        DashboardBroadcastService $broadcastService
     ) {
         $this->service = $service;
+        $this->broadcastService = $broadcastService;
     }
 
     /**
@@ -142,6 +146,14 @@ class ReturController extends Controller
                 $images,
                 $user->id
             );
+
+            // 🔥 Trigger tambahan dari controller (opsional)
+            try {
+                $this->broadcastService->broadcast();
+                Log::info('✅ Dashboard broadcast triggered from retur controller');
+            } catch (\Exception $e) {
+                Log::error('❌ Failed to broadcast from retur controller: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'status' => true,
@@ -301,6 +313,79 @@ class ReturController extends Controller
             return response()->json([
                 'status' => false,
                 'message' => 'Gagal menyelesaikan retur: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update Retur
+     */
+    public function update(Request $request, int $id)
+    {
+        try {
+            $user = Auth::guard('api')->user();
+            
+            // Cek akses: hanya admin yang bisa update retur
+            if ($user->role !== 'admin') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengupdate retur',
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'reason' => 'nullable|string|max:1000',
+            ]);
+
+            $retur = $this->service->update($id, $validated);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Retur berhasil diupdate',
+                'data' => $retur
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Retur update error: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Retur
+     */
+    public function destroy(int $id)
+    {
+        try {
+            $user = Auth::guard('api')->user();
+            
+            // Cek akses: hanya admin yang bisa hapus retur
+            if ($user->role !== 'admin') {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Anda tidak memiliki akses untuk menghapus retur',
+                ], 403);
+            }
+
+            $this->service->delete($id);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Retur berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Retur destroy error: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

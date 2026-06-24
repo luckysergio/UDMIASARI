@@ -53,7 +53,6 @@ const CustomerLayout = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // data-aos rawan memicu scroll horizontal pada device mobile jika durasi terlalu lama / tanpa pembatasan overflow
     AOS.init({
       duration: 600, 
       once: true,
@@ -98,12 +97,12 @@ const CustomerLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-x-hidden">
-      {/* Navbar */}
-      <nav className="bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-50">
+      {/* Navbar - FIXED: Menggunakan fixed agar selalu di atas */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 shadow-lg shadow-slate-900/50 transition-all duration-300">
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
+            <Link to="/" className="flex items-center gap-2 group shrink-0">
               <Logo size="md" />
             </Link>
 
@@ -156,57 +155,59 @@ const CustomerLayout = ({ children }) => {
             </button>
           </div>
 
-          {/* Mobile Navigation Dropdown */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden mt-3 pt-3 border-t border-slate-700/50 space-y-1">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const active = isActive(link.path);
-                return (
-                  <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm ${
-                      active
-                        ? "bg-indigo-600 text-white"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="font-medium">{link.label}</span>
-                  </Link>
-                );
-              })}
-              <div className="pt-2 mt-2 border-t border-slate-700/50">
-                <div className="flex items-center justify-between px-4 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                      <User className="w-3.5 h-3.5 text-indigo-400" />
-                    </div>
-                    <span className="text-xs text-slate-300 truncate max-w-37.5">
-                      {user?.name}
-                    </span>
+          {/* Mobile Navigation Dropdown - Smooth Animation */}
+          <div 
+            className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+              isMobileMenuOpen ? 'max-h-96 opacity-100 mt-3 pt-3' : 'max-h-0 opacity-0'
+            } border-t border-slate-700/50 space-y-1`}
+          >
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              const active = isActive(link.path);
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-sm ${
+                    active
+                      ? "bg-indigo-600 text-white"
+                      : "text-slate-300 hover:text-white hover:bg-slate-800"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium">{link.label}</span>
+                </Link>
+              );
+            })}
+            <div className="pt-2 mt-2 border-t border-slate-700/50">
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                    <User className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    disabled={isLoggingOut}
-                    className="p-2 rounded-lg text-red-400 hover:text-white hover:bg-red-500/20 transition-all cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
+                  <span className="text-xs text-slate-300 truncate max-w-37.5">
+                    {user?.name}
+                  </span>
                 </div>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  disabled={isLoggingOut}
+                  className="p-2 rounded-lg text-red-400 hover:text-white hover:bg-red-500/20 transition-all cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </nav>
 
-      {/* Main Content Layout */}
-      <main className="container mx-auto px-4 py-6 md:py-8 flex-1">
+      {/* Main Content Layout - Tambahkan padding-top agar konten tidak tertutup navbar */}
+      <main className="container mx-auto px-4 py-6 md:py-8 flex-1 mt-16 md:mt-20">
         {children}
       </main>
 

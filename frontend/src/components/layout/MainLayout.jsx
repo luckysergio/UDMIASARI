@@ -1,15 +1,25 @@
+// src/components/layout/MainLayout.jsx
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import OrderNotification from '../common/OrderNotification';
+import { useAuth } from '../../hooks/useAuth';
 
 const MainLayout = ({ children }) => {
-  // Tidak perlu activeTab karena Sidebar sudah handle sendiri
+  const { getUserRole } = useAuth();
+  const userRole = getUserRole();
+  const isAdmin = userRole === 'admin' || userRole === 'kepala_produksi';
+
   return (
     <div className="flex h-screen overflow-hidden bg-linear-to-br from-slate-900 to-slate-800">
       <Sidebar />
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden bg-linear-to-br from-slate-800 to-slate-900">
+        {/* Top Bar dengan Notifikasi */}
+        <div className="bg-slate-800/50 backdrop-blur-sm border-b border-slate-700/50 px-6 py-3 flex items-center justify-end shrink-0">
+          <OrderNotification isAdmin={isAdmin} />
+        </div>
         
         {/* Main Content dengan Scrollbar Custom */}
         <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
@@ -20,7 +30,6 @@ const MainLayout = ({ children }) => {
       </div>
 
       <style>{`
-        /* Custom Scrollbar untuk Main Content */
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
           height: 8px;
@@ -41,7 +50,6 @@ const MainLayout = ({ children }) => {
           background: #6366f1;
         }
 
-        /* Untuk Firefox */
         .custom-scrollbar {
           scrollbar-width: thin;
           scrollbar-color: #475569 #1e293b;
