@@ -32,9 +32,10 @@ import landingPageService from "../services/landingPageService";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-// Hero Carousel Component (tetap sama)
+// ============================================================
+// HERO CAROUSEL
+// ============================================================
 const HeroCarousel = () => {
-  // ... (kode HeroCarousel tetap sama, tidak diubah)
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [touchStart, setTouchStart] = useState(0);
@@ -68,13 +69,9 @@ const HeroCarousel = () => {
 
   useEffect(() => {
     if (!isPlaying) return;
-
-    const interval = setInterval(() => {
-      nextSlide();
-    }, 5000);
-
+    const interval = setInterval(nextSlide, 5000);
     return () => clearInterval(interval);
-  }, [isPlaying, currentIndex]);
+  }, [isPlaying]);
 
   const handleTouchStart = (e) => {
     setTouchStart(e.targetTouches[0].clientX);
@@ -86,18 +83,9 @@ const HeroCarousel = () => {
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-
-    if (isLeftSwipe) {
-      nextSlide();
-    }
-    if (isRightSwipe) {
-      prevSlide();
-    }
-
+    if (distance > 50) nextSlide();
+    if (distance < -50) prevSlide();
     setTouchStart(0);
     setTouchEnd(0);
   };
@@ -122,12 +110,13 @@ const HeroCarousel = () => {
                 className="w-full h-full object-cover"
                 loading={index === 0 ? "eager" : "lazy"}
               />
-              <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-black/50"></div>
+              <div className="absolute inset-0 bg-linear-to-trom-black/70 via-black/30 to-black/50" />
             </div>
           ))}
         </div>
       </div>
 
+      {/* Indicators */}
       <div className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 z-20">
         {images.map((_, index) => (
           <button
@@ -143,6 +132,7 @@ const HeroCarousel = () => {
         ))}
       </div>
 
+      {/* Navigation Buttons */}
       <button
         onClick={prevSlide}
         className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 z-20"
@@ -150,7 +140,6 @@ const HeroCarousel = () => {
       >
         <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
-
       <button
         onClick={nextSlide}
         className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-all duration-300 opacity-0 group-hover:opacity-100 focus:opacity-100 z-20"
@@ -159,6 +148,7 @@ const HeroCarousel = () => {
         <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
       </button>
 
+      {/* Play/Pause */}
       <button
         onClick={togglePlayPause}
         className="absolute bottom-4 sm:bottom-6 right-4 sm:right-6 p-1.5 sm:p-2 rounded-full bg-black/30 hover:bg-black/50 text-white transition-all duration-300 z-20 backdrop-blur-sm"
@@ -171,45 +161,29 @@ const HeroCarousel = () => {
         )}
       </button>
 
+      {/* Hero Text */}
       <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none px-4">
         <div className="container mx-auto text-center">
           <div className="max-w-4xl mx-auto">
-            <div
-              className="inline-flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-3 sm:mb-6"
-              data-aos="fade-down"
-            >
+            <div className="inline-flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-3 sm:mb-6" data-aos="fade-down">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
               <span className="text-white text-[10px] sm:text-xs md:text-sm font-medium">
                 Produsen Bakso Terpercaya di Tangerang
               </span>
             </div>
-
-            <h1
-              className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-3 sm:mb-6 leading-tight"
-              data-aos="fade-up"
-            >
+            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-3 sm:mb-6 leading-tight" data-aos="fade-up">
               Kehangatan Rasa Bakso
               <br />
               <span className="bg-linear-to-r from-yellow-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
                 Tradisional dan Higienis
               </span>
             </h1>
-
-            <p
-              className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 mb-4 sm:mb-8 max-w-2xl mx-auto px-2"
-              data-aos="fade-up"
-              data-aos-delay="100"
-            >
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 mb-4 sm:mb-8 max-w-2xl mx-auto px-2" data-aos="fade-up" data-aos-delay="100">
               UD. Mia Sari adalah produsen bakso rumahan asal Tangerang yang
               berkomitmen menyajikan bakso berkualitas tinggi, halal, dan
               higienis.
             </p>
-
-            <div
-              className="flex flex-wrap justify-center gap-2 sm:gap-4"
-              data-aos="fade-up"
-              data-aos-delay="200"
-            >
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4" data-aos="fade-up" data-aos-delay="200">
               <button
                 onClick={() => {
                   const productsSection = document.getElementById("products");
@@ -230,7 +204,9 @@ const HeroCarousel = () => {
   );
 };
 
-// Logo Component (tetap sama)
+// ============================================================
+// LOGO COMPONENT
+// ============================================================
 const Logo = ({ size = "md", showText = true, className = "" }) => {
   const [imgError, setImgError] = useState(false);
   const logoUrl = "/images/logo.png";
@@ -300,7 +276,9 @@ const Logo = ({ size = "md", showText = true, className = "" }) => {
   );
 };
 
-// Custom SVG Icons (tetap sama)
+// ============================================================
+// SOCIAL ICONS
+// ============================================================
 const FacebookIcon = ({ className }) => (
   <svg
     className={className}
@@ -348,6 +326,9 @@ const Target = ({ className }) => (
   </svg>
 );
 
+// ============================================================
+// LANDING PAGE
+// ============================================================
 const LandingPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
@@ -372,8 +353,7 @@ const LandingPage = () => {
   const [cartAnimating, setCartAnimating] = useState(false);
 
   const userRole = user?.role;
-  const isAdminOrProduksi =
-    userRole === "admin" || userRole === "kepala_produksi";
+  const isAdminOrProduksi = userRole === "admin" || userRole === "kepala_produksi";
   const isCustomer = userRole === "customer";
 
   useEffect(() => {
@@ -454,7 +434,6 @@ const LandingPage = () => {
       removeFromCart(productId);
       return;
     }
-
     const updatedCart = cart.map((item) =>
       item.product_id === productId
         ? { ...item, qty: newQty, subtotal: newQty * item.price }
@@ -603,6 +582,9 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 overflow-x-hidden">
+      {/* ============================================================
+          NAVBAR
+          ============================================================ */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 shadow-lg shadow-slate-900/50 transition-all duration-300">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between gap-2 sm:gap-4">
@@ -628,9 +610,7 @@ const LandingPage = () => {
               {isAuthenticated() ? (
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="hidden xs:block">
-                    <p className="text-slate-400 text-[10px] sm:text-xs">
-                      Halo,
-                    </p>
+                    <p className="text-slate-400 text-[10px] sm:text-xs">Halo,</p>
                     <p className="text-white text-xs sm:text-sm font-medium">
                       {user?.name?.split(" ")[0]}
                     </p>
@@ -676,7 +656,9 @@ const LandingPage = () => {
         <HeroCarousel />
       </div>
 
-      {/* Statistics Section */}
+      {/* ============================================================
+          STATISTICS SECTION
+          ============================================================ */}
       <section className="py-8 sm:py-12">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
@@ -689,7 +671,7 @@ const LandingPage = () => {
                   data-aos="fade-up"
                   data-aos-delay={index * 100}
                 >
-                  <div className="absolute inset-0 bg-linear-to-r from-slate-800/50 to-slate-800/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all"></div>
+                  <div className="absolute inset-0 bg-linear-to-r from-slate-800/50 to-slate-800/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all" />
                   <div className="relative bg-slate-800/30 backdrop-blur-sm rounded-2xl p-3 sm:p-6 text-center border border-slate-700/50 group-hover:border-indigo-500/30 transition-all duration-300">
                     <div
                       className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl bg-linear-to-br ${stat.gradient} bg-opacity-20 flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg`}
@@ -710,7 +692,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Top Products Section */}
+      {/* ============================================================
+          TOP PRODUCTS SECTION
+          ============================================================ */}
       <section className="py-12 sm:py-20">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="text-center mb-8 sm:mb-12" data-aos="fade-up">
@@ -737,10 +721,10 @@ const LandingPage = () => {
                     key={i}
                     className="bg-slate-800/50 rounded-2xl border border-slate-700 animate-pulse overflow-hidden"
                   >
-                    <div className="w-full h-36 sm:h-48 bg-slate-700"></div>
+                    <div className="w-full h-36 sm:h-48 bg-slate-700" />
                     <div className="p-3 sm:p-4">
-                      <div className="h-3 sm:h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-                      <div className="h-2 sm:h-3 bg-slate-700 rounded w-1/2"></div>
+                      <div className="h-3 sm:h-4 bg-slate-700 rounded w-3/4 mb-2" />
+                      <div className="h-2 sm:h-3 bg-slate-700 rounded w-1/2" />
                     </div>
                   </div>
                 ))
@@ -773,7 +757,7 @@ const LandingPage = () => {
                         Terjual {product.total_sold}
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
                   <div className="p-3 sm:p-4">
                     <h3 className="text-white font-semibold text-sm sm:text-lg mb-0.5 sm:mb-1 truncate group-hover:text-indigo-400 transition-colors">
@@ -801,7 +785,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* All Products Section */}
+      {/* ============================================================
+          ALL PRODUCTS SECTION
+          ============================================================ */}
       <section id="products" className="py-12 sm:py-20 bg-slate-800/20">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="text-center mb-8 sm:mb-12" data-aos="fade-up">
@@ -926,10 +912,10 @@ const LandingPage = () => {
                     key={i}
                     className="bg-slate-800/50 rounded-2xl border border-slate-700 animate-pulse overflow-hidden"
                   >
-                    <div className="w-full h-36 sm:h-48 bg-slate-700"></div>
+                    <div className="w-full h-36 sm:h-48 bg-slate-700" />
                     <div className="p-3 sm:p-4">
-                      <div className="h-3 sm:h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-                      <div className="h-2 sm:h-3 bg-slate-700 rounded w-1/2"></div>
+                      <div className="h-3 sm:h-4 bg-slate-700 rounded w-3/4 mb-2" />
+                      <div className="h-2 sm:h-3 bg-slate-700 rounded w-1/2" />
                     </div>
                   </div>
                 ))}
@@ -976,7 +962,7 @@ const LandingPage = () => {
                           </span>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
                     <div className="p-3 sm:p-4">
                       <h3 className="text-white font-semibold text-sm sm:text-lg mb-0.5 sm:mb-1 truncate group-hover:text-indigo-400 transition-colors">
@@ -1065,7 +1051,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* About & Contact Section */}
+      {/* ============================================================
+          ABOUT & CONTACT SECTION
+          ============================================================ */}
       <section className="py-12 sm:py-20">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12">
@@ -1207,7 +1195,9 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* ============================================================
+          FEATURES SECTION
+          ============================================================ */}
       <section className="py-12 sm:py-20 bg-slate-800/30">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="text-center mb-8 sm:mb-12" data-aos="fade-up">
@@ -1253,26 +1243,26 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ============================================================
+          FOOTER
+          ============================================================ */}
       <footer className="bg-slate-900/80 border-t border-slate-800 py-6 sm:py-8">
         <div className="container mx-auto px-3 sm:px-4 text-center">
-          <Logo
-            size="sm"
-            showText={false}
-            className="justify-center mb-3 sm:mb-4"
-          />
+          <Logo size="sm" showText={false} className="justify-center mb-3 sm:mb-4" />
           <p className="text-slate-400 text-xs sm:text-sm">
             &copy; {new Date().getFullYear()} UD. Mia Sari. All rights reserved.
           </p>
         </div>
       </footer>
 
-      {/* ===== PRODUCT DETAIL MODAL - DIPERBAIKI ===== */}
+      {/* ============================================================
+          PRODUCT DETAIL MODAL - KONSISTEN DENGAN CUSTOMER TRANSACTIONS
+          ============================================================ */}
       {showProductModal && selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 border border-slate-700/50">
+        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-auto border border-slate-700/50 overflow-hidden max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-slate-800/95 backdrop-blur-sm flex items-center justify-between p-4 border-b border-slate-700 rounded-t-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800/95">
               <h3 className="text-lg font-semibold text-white flex-1 text-center">Detail Produk</h3>
               <button
                 onClick={() => setShowProductModal(false)}
@@ -1281,11 +1271,10 @@ const LandingPage = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             {/* Body */}
             <div className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Image */}
                 <div className="bg-linear-to-br from-slate-700 to-slate-800 rounded-xl overflow-hidden h-48 flex items-center justify-center">
                   {selectedProduct.image ? (
                     <img
@@ -1297,12 +1286,9 @@ const LandingPage = () => {
                     <Package className="w-12 h-12 text-slate-500" />
                   )}
                 </div>
-                
-                {/* Info */}
                 <div>
                   <h2 className="text-lg font-bold text-white mb-0.5">{selectedProduct.name}</h2>
                   <p className="text-slate-400 text-xs mb-2">Kode: {selectedProduct.code}</p>
-                  
                   <div className="flex flex-wrap gap-1 mb-3">
                     {selectedProduct.category_name && (
                       <span className="text-[10px] text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded-full">
@@ -1315,18 +1301,15 @@ const LandingPage = () => {
                       </span>
                     )}
                   </div>
-                  
                   <p className="text-xl font-bold text-emerald-400 mb-2">
                     {formatRupiah(selectedProduct.price)}
                   </p>
-                  
                   <div className="mb-2">
                     <p className="text-slate-300 text-xs mb-0.5">Deskripsi:</p>
                     <p className="text-slate-400 text-xs leading-relaxed line-clamp-3">
                       {selectedProduct.description || "Tidak ada deskripsi untuk produk ini."}
                     </p>
                   </div>
-                  
                   <div className="mb-3">
                     <p className="text-slate-300 text-xs">
                       Stok: <span className={selectedProduct.stock > 0 ? "text-emerald-400" : "text-red-400"}>
@@ -1334,8 +1317,6 @@ const LandingPage = () => {
                       </span>
                     </p>
                   </div>
-                  
-                  {/* Tombol */}
                   <div className="flex gap-2">
                     {selectedProduct.is_available ? (
                       <button
@@ -1354,15 +1335,11 @@ const LandingPage = () => {
                         {isAuthenticated() && isCustomer ? "Tambah ke Keranjang" : "Login"}
                       </button>
                     ) : (
-                      <button
-                        disabled
-                        className="flex-1 py-2 bg-slate-600 text-slate-400 rounded-xl cursor-not-allowed text-sm"
-                      >
+                      <button disabled className="flex-1 py-2 bg-slate-600 text-slate-400 rounded-xl cursor-not-allowed text-sm">
                         Stok Habis
                       </button>
                     )}
                   </div>
-                  
                   {(!isAuthenticated() || !isCustomer) && selectedProduct.is_available && (
                     <p className="text-[10px] text-slate-400 text-center mt-2">
                       {!isAuthenticated() ? "Silakan login terlebih dahulu untuk melakukan pemesanan" : "Anda tidak dapat melakukan pemesanan"}
@@ -1375,10 +1352,12 @@ const LandingPage = () => {
         </div>
       )}
 
-      {/* ===== CART MODAL - DIPERBAIKI ===== */}
+      {/* ============================================================
+          CART MODAL - KONSISTEN DENGAN CUSTOMER TRANSACTIONS
+          ============================================================ */}
       {showCart && isCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 border border-slate-700/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-700/50">
             {/* Header */}
             <div className="sticky top-0 bg-slate-800/95 backdrop-blur-sm flex items-center justify-between p-4 border-b border-slate-700 rounded-t-2xl">
               <div className="flex items-center gap-2">
@@ -1395,7 +1374,7 @@ const LandingPage = () => {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             {/* Body */}
             <div className="p-4">
               {cart.length === 0 ? (
@@ -1412,11 +1391,9 @@ const LandingPage = () => {
                 </div>
               ) : (
                 <>
-                  {/* List Item */}
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1 custom-scroll">
                     {cart.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded-xl hover:bg-slate-700/50 transition-all duration-300">
-                        {/* Image */}
                         <div className="w-11 h-11 rounded-lg bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
                           {item.image ? (
                             <img src={item.image} alt={item.product_name} className="w-full h-full object-cover" />
@@ -1424,64 +1401,39 @@ const LandingPage = () => {
                             <Package className="w-5 h-5 text-slate-500" />
                           )}
                         </div>
-                        
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <h4 className="text-white font-medium text-xs truncate">{item.product_name}</h4>
                           <p className="text-[10px] text-slate-400">{item.product_code}</p>
                           <p className="text-emerald-400 text-xs font-semibold">{formatRupiah(item.price)}</p>
                         </div>
-                        
-                        {/* Qty */}
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => updateCartQty(item.product_id, item.qty - 1)}
-                            className="w-6 h-6 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center transition"
-                          >
+                          <button onClick={() => updateCartQty(item.product_id, item.qty - 1)} className="w-6 h-6 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center transition">
                             <Minus className="w-2.5 h-2.5 text-white" />
                           </button>
                           <span className="text-white w-6 text-center text-xs font-medium">{item.qty}</span>
-                          <button
-                            onClick={() => updateCartQty(item.product_id, item.qty + 1)}
-                            className="w-6 h-6 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center transition"
-                          >
+                          <button onClick={() => updateCartQty(item.product_id, item.qty + 1)} className="w-6 h-6 rounded-lg bg-slate-600 hover:bg-slate-500 flex items-center justify-center transition">
                             <Plus className="w-2.5 h-2.5 text-white" />
                           </button>
                         </div>
-                        
-                        {/* Subtotal */}
                         <div className="text-right min-w-16">
                           <p className="text-white font-semibold text-xs">{formatRupiah(item.subtotal)}</p>
                         </div>
-                        
-                        {/* Delete */}
-                        <button
-                          onClick={() => removeFromCart(item.product_id)}
-                          className="w-6 h-6 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 flex items-center justify-center transition shrink-0"
-                        >
+                        <button onClick={() => removeFromCart(item.product_id)} className="w-6 h-6 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 flex items-center justify-center transition shrink-0">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
                   </div>
-                  
-                  {/* Footer */}
                   <div className="mt-3 pt-3 border-t border-slate-700">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-slate-400 text-sm">Total</span>
                       <span className="text-lg font-bold text-emerald-400">{formatRupiah(getCartTotal())}</span>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <button
-                        onClick={() => setShowCart(false)}
-                        className="flex-1 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-xl text-sm font-medium transition"
-                      >
+                      <button onClick={() => setShowCart(false)} className="flex-1 py-2 bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-xl text-sm font-medium transition">
                         Lanjut Belanja
                       </button>
-                      <button
-                        onClick={handleCheckout}
-                        className="flex-1 py-2 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl flex items-center justify-center gap-2 font-medium text-sm shadow-lg shadow-indigo-500/25 transition"
-                      >
+                      <button onClick={handleCheckout} className="flex-1 py-2 bg-linear-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl flex items-center justify-center gap-2 font-medium text-sm shadow-lg shadow-indigo-500/25 transition">
                         <ShoppingCart className="w-4 h-4" />
                         Checkout
                       </button>
@@ -1494,25 +1446,20 @@ const LandingPage = () => {
         </div>
       )}
 
-      {/* Custom Styles */}
+      {/* ============================================================
+          STYLES
+          ============================================================ */}
       <style>{`
         @media (min-width: 480px) {
-          .xs\\:grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .xs\\:block {
-            display: block;
-          }
-          .xs\\:inline-flex {
-            display: inline-flex;
-          }
+          .xs\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .xs\\:block { display: block; }
+          .xs\\:inline-flex { display: inline-flex; }
         }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #6366f1; }
         
-        /* Animations */
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -1525,24 +1472,12 @@ const LandingPage = () => {
           animation-duration: 200ms;
           animation-fill-mode: both;
         }
-        .fade-in {
-          animation-name: fadeIn;
-        }
-        .zoom-in-95 {
-          animation-name: zoomIn;
-        }
+        .fade-in { animation-name: fadeIn; }
+        .zoom-in-95 { animation-name: zoomIn; }
         
-        /* Prevent horizontal scroll */
-        * {
-          max-width: 100vw;
-          box-sizing: border-box;
-        }
-        img, svg, video, canvas, iframe {
-          max-width: 100%;
-        }
-        .container {
-          max-width: 100%;
-        }
+        * { max-width: 100vw; box-sizing: border-box; }
+        img, svg, video, canvas, iframe { max-width: 100%; }
+        .container { max-width: 100%; }
       `}</style>
     </div>
   );

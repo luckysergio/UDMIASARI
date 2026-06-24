@@ -1,7 +1,7 @@
 // src/components/common/OrderNotification.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, X, ShoppingBag, Eye, Trash2, CheckCircle } from 'lucide-react';
+import { Bell, X, ShoppingBag, Eye, Trash2, CheckCircle, RefreshCw } from 'lucide-react';
 import notificationService from '../../services/notificationService';
 import echo from '../../services/echo';
 import { formatRupiah } from '../../utils/format';
@@ -77,6 +77,33 @@ const OrderNotification = ({ isAdmin = false }) => {
         }
     };
 
+    // Get notification icon based on type
+    const getNotificationIcon = (notification) => {
+        const type = notification.type || notification.notification_type || '';
+        
+        if (type === 'new_order' || type === 'order_completed') {
+            return {
+                icon: <ShoppingBag className="w-4 h-4 text-emerald-400" />,
+                bgColor: 'bg-emerald-500/20',
+                label: 'Pesanan'
+            };
+        } else if (type === 'retur_created' || type === 'retur_approved' || 
+                   type === 'retur_rejected' || type === 'retur_replacement_sent' || 
+                   type === 'retur_completed' || type.startsWith('retur_')) {
+            return {
+                icon: <RefreshCw className="w-4 h-4 text-orange-400" />,
+                bgColor: 'bg-orange-500/20',
+                label: 'Retur'
+            };
+        } else {
+            return {
+                icon: <ShoppingBag className="w-4 h-4 text-indigo-400" />,
+                bgColor: 'bg-indigo-500/20',
+                label: 'Notifikasi'
+            };
+        }
+    };
+
     // Setup WebSocket
     useEffect(() => {
         if (!isAdmin) {
@@ -94,11 +121,19 @@ const OrderNotification = ({ isAdmin = false }) => {
                 console.log('✅ Connected to notifications channel');
             });
 
+            // Listener untuk transaksi
             channel.listen('.transaction.created', (event) => {
                 console.log('📦 [EVENT] transaction.created received:', event);
                 handleNewNotification(event);
             });
 
+            // 🔥 TAMBAHKAN LISTENER UNTUK RETUR
+            channel.listen('.return.created', (event) => {
+                console.log('🔄 [EVENT] return.created received:', event);
+                handleNewNotification(event);
+            });
+
+            // Debug semua event
             channel.listen('*', (event, data) => {
                 console.log('🔍 [ALL EVENTS] Event name:', event);
                 console.log('🔍 [ALL EVENTS] Event data:', data);
@@ -111,6 +146,7 @@ const OrderNotification = ({ isAdmin = false }) => {
             return () => {
                 console.log('🔌 Unsubscribing from notifications channel');
                 channel.stopListening('.transaction.created');
+                channel.stopListening('.return.created');
                 channel.stopListening('*');
                 echo.leaveChannel('notifications');
             };
@@ -242,60 +278,83 @@ const OrderNotification = ({ isAdmin = false }) => {
                                 <p className="text-sm">Tidak ada notifikasi</p>
                             </div>
                         ) : (
-                            notifications.map((notification) => (
-                                <div
-                                    key={notification.id}
-                                    className="flex items-start gap-3 p-3 border-b border-slate-700/50 hover:bg-slate-700/30 transition cursor-pointer group"
-                                >
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                                        notification.type === 'new_order' 
-                                            ? 'bg-emerald-500/20' 
-                                            : 'bg-indigo-500/20'
-                                    }`}>
-                                        <ShoppingBag className={`w-4 h-4 ${
-                                            notification.type === 'new_order' 
-                                                ? 'text-emerald-400' 
-                                                : 'text-indigo-400'
-                                        }`} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-white text-sm font-medium wrap-break-word leading-relaxed">
-                                            {notification.message}
-                                        </p>
-                                        <div className="flex items-center flex-wrap gap-1 mt-1.5">
-                                            <span className="text-xs text-emerald-400 font-semibold">
-                                                {formatRupiah(notification.grand_total)}
-                                            </span>
-                                            <span className="text-xs text-slate-500">•</span>
-                                            <span className="text-xs text-slate-500">
-                                                {formatDate(notification.created_at)}
-                                            </span>
-                                            {notification.status && (
-                                                <>
-                                                    <span className="text-xs text-slate-500">•</span>
-                                                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                                        notification.status === 'dipesan' 
-                                                            ? 'bg-yellow-500/20 text-yellow-400' 
-                                                            : 'bg-green-500/20 text-green-400'
-                                                    }`}>
-                                                        {notification.status}
-                                                    </span>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleMarkAsRead(notification.id);
-                                        }}
-                                        className="text-slate-400 hover:text-indigo-400 transition shrink-0 opacity-0 group-hover:opacity-100 mt-1"
-                                        title="Tandai telah dibaca"
+                            notifications.map((notification) => {
+                                const iconData = getNotificationIcon(notification);
+                                
+                                return (
+                                    <div
+                                        key={notification.id}
+                                        className="flex items-start gap-3 p-3 border-b border-slate-700/50 hover:bg-slate-700/30 transition cursor-pointer group"
                                     >
-                                        <Eye className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${iconData.bgColor}`}>
+                                            {iconData.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-white text-sm font-medium wrap-break-word leading-relaxed">
+                                                {notification.message}
+                                            </p>
+                                            <div className="flex items-center flex-wrap gap-1 mt-1.5">
+                                                {notification.grand_total && (
+                                                    <>
+                                                        <span className="text-xs text-emerald-400 font-semibold">
+                                                            {formatRupiah(notification.grand_total)}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">•</span>
+                                                    </>
+                                                )}
+                                                {notification.total_refund && (
+                                                    <>
+                                                        <span className="text-xs text-rose-400 font-semibold">
+                                                            {formatRupiah(notification.total_refund)}
+                                                        </span>
+                                                        <span className="text-xs text-slate-500">•</span>
+                                                    </>
+                                                )}
+                                                <span className="text-xs text-slate-500">
+                                                    {formatDate(notification.created_at)}
+                                                </span>
+                                                {notification.status && (
+                                                    <>
+                                                        <span className="text-xs text-slate-500">•</span>
+                                                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                                            notification.status === 'dipesan' || notification.status === 'pending'
+                                                                ? 'bg-yellow-500/20 text-yellow-400' 
+                                                                : notification.status === 'approved' || notification.status === 'completed'
+                                                                    ? 'bg-green-500/20 text-green-400'
+                                                                    : 'bg-red-500/20 text-red-400'
+                                                        }`}>
+                                                            {notification.status === 'pending' ? 'Menunggu' : 
+                                                             notification.status === 'approved' ? 'Disetujui' :
+                                                             notification.status === 'rejected' ? 'Ditolak' :
+                                                             notification.status === 'replacement_sent' ? 'Pengganti Dikirim' :
+                                                             notification.status === 'completed' ? 'Selesai' :
+                                                             notification.status}
+                                                        </span>
+                                                    </>
+                                                )}
+                                                {notification.type_label && (
+                                                    <>
+                                                        <span className="text-xs text-slate-500">•</span>
+                                                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                                                            {notification.type_label}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleMarkAsRead(notification.id);
+                                            }}
+                                            className="text-slate-400 hover:text-indigo-400 transition shrink-0 opacity-0 group-hover:opacity-100 mt-1"
+                                            title="Tandai telah dibaca"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                );
+                            })
                         )}
                     </div>
                 </div>,
@@ -343,11 +402,24 @@ const OrderNotification = ({ isAdmin = false }) => {
                             <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-linear-to-r from-emerald-600/20 to-teal-600/20">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                        <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                                        {latestNotification.type === 'new_order' || latestNotification.type === 'order_completed' ? (
+                                            <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                                        ) : latestNotification.notification_type?.startsWith('retur_') ? (
+                                            <RefreshCw className="w-5 h-5 text-orange-400" />
+                                        ) : (
+                                            <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                                        )}
                                     </div>
                                     <div>
-                                        <h3 className="text-white font-semibold text-sm">Pesanan Baru!</h3>
-                                        <p className="text-xs text-emerald-400">Order #{latestNotification.invoice_no?.slice(-6)}</p>
+                                        <h3 className="text-white font-semibold text-sm">
+                                            {latestNotification.type === 'new_order' ? 'Pesanan Baru!' :
+                                             latestNotification.notification_type?.startsWith('retur_') ? 'Retur Baru!' :
+                                             'Notifikasi'}
+                                        </h3>
+                                        <p className="text-xs text-emerald-400">
+                                            {latestNotification.invoice_no ? `Order #${latestNotification.invoice_no?.slice(-6)}` :
+                                             latestNotification.return_no ? `Retur #${latestNotification.return_no?.slice(-6)}` : ''}
+                                        </p>
                                     </div>
                                 </div>
                                 <button
@@ -362,10 +434,18 @@ const OrderNotification = ({ isAdmin = false }) => {
                             <div className="p-5">
                                 <div className="text-center mb-4">
                                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 mb-3">
-                                        <CheckCircle className="w-8 h-8 text-emerald-400" />
+                                        {latestNotification.type === 'new_order' || latestNotification.type === 'order_completed' ? (
+                                            <ShoppingBag className="w-8 h-8 text-emerald-400" />
+                                        ) : latestNotification.notification_type?.startsWith('retur_') ? (
+                                            <RefreshCw className="w-8 h-8 text-orange-400" />
+                                        ) : (
+                                            <CheckCircle className="w-8 h-8 text-emerald-400" />
+                                        )}
                                     </div>
                                     <h4 className="text-white font-semibold text-base">
-                                        Ada Pesanan Masuk!
+                                        {latestNotification.type === 'new_order' ? 'Ada Pesanan Masuk!' :
+                                         latestNotification.notification_type?.startsWith('retur_') ? 'Ada Retur Masuk!' :
+                                         'Notifikasi'}
                                     </h4>
                                     <p className="text-slate-400 text-sm mt-1 wrap-break-word">
                                         {latestNotification.message}
@@ -373,29 +453,62 @@ const OrderNotification = ({ isAdmin = false }) => {
                                 </div>
 
                                 <div className="bg-slate-700/30 rounded-xl p-4 space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Invoice</span>
-                                        <span className="text-white font-medium break-all">{latestNotification.invoice_no}</span>
-                                    </div>
+                                    {latestNotification.invoice_no && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">Invoice</span>
+                                            <span className="text-white font-medium break-all">{latestNotification.invoice_no}</span>
+                                        </div>
+                                    )}
+                                    {latestNotification.return_no && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">No. Retur</span>
+                                            <span className="text-white font-medium break-all">{latestNotification.return_no}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-400">Customer</span>
                                         <span className="text-white font-medium wrap-break-word">{latestNotification.customer_name}</span>
                                     </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Total</span>
-                                        <span className="text-emerald-400 font-bold">{formatRupiah(latestNotification.grand_total)}</span>
-                                    </div>
+                                    {latestNotification.grand_total && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">Total</span>
+                                            <span className="text-emerald-400 font-bold">{formatRupiah(latestNotification.grand_total)}</span>
+                                        </div>
+                                    )}
+                                    {latestNotification.total_refund && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">Total Refund</span>
+                                            <span className="text-rose-400 font-bold">{formatRupiah(latestNotification.total_refund)}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-400">Status</span>
-                                        <span className="text-yellow-400 bg-yellow-500/20 px-2 py-0.5 rounded-full text-xs">
-                                            {latestNotification.status || 'Dipesan'}
+                                        <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                            latestNotification.status === 'dipesan' || latestNotification.status === 'pending'
+                                                ? 'bg-yellow-500/20 text-yellow-400' 
+                                                : latestNotification.status === 'approved' || latestNotification.status === 'completed'
+                                                    ? 'bg-green-500/20 text-green-400'
+                                                    : 'bg-red-500/20 text-red-400'
+                                        }`}>
+                                            {latestNotification.status === 'pending' ? 'Menunggu' : 
+                                             latestNotification.status === 'approved' ? 'Disetujui' :
+                                             latestNotification.status === 'rejected' ? 'Ditolak' :
+                                             latestNotification.status === 'replacement_sent' ? 'Pengganti Dikirim' :
+                                             latestNotification.status === 'completed' ? 'Selesai' :
+                                             latestNotification.status || 'Dipesan'}
                                         </span>
                                     </div>
+                                    {latestNotification.type_label && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-400">Tipe</span>
+                                            <span className="text-purple-400 font-medium">{latestNotification.type_label}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="mt-4 text-center">
                                     <p className="text-xs text-slate-400">
-                                        Klik "Tutup" atau "Lihat Pesanan" untuk menutup notifikasi
+                                        Klik "Tutup" atau "Lihat Detail" untuk menutup notifikasi
                                     </p>
                                 </div>
                             </div>
@@ -411,11 +524,17 @@ const OrderNotification = ({ isAdmin = false }) => {
                                 <button
                                     onClick={() => {
                                         handleClosePopup();
-                                        window.location.href = '/transactions';
+                                        if (latestNotification.type === 'new_order' || latestNotification.type === 'order_completed') {
+                                            window.location.href = '/transactions';
+                                        } else if (latestNotification.notification_type?.startsWith('retur_')) {
+                                            window.location.href = '/returs';
+                                        } else {
+                                            window.location.href = '/transactions';
+                                        }
                                     }}
                                     className="flex-1 px-4 py-2.5 bg-linear-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl transition-all duration-300 text-sm font-medium shadow-lg shadow-emerald-500/25"
                                 >
-                                    Lihat Pesanan
+                                    Lihat Detail
                                 </button>
                             </div>
                         </div>

@@ -8,7 +8,9 @@ use App\Models\ReturDetail;
 use App\Models\Transaction;
 use App\Models\Inventory;
 use App\Models\ProductMovement;
-use App\Events\DashboardStatsUpdated; // Import event
+use App\Events\DashboardStatsUpdated;
+use App\Events\NewReturnNotification;
+use App\Services\NotificationService;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,10 +21,14 @@ use Illuminate\Support\Str;
 class ReturService
 {
     protected DashboardBroadcastService $broadcastService;
+    protected NotificationService $notificationService;
 
-    public function __construct(DashboardBroadcastService $broadcastService)
-    {
+    public function __construct(
+        DashboardBroadcastService $broadcastService,
+        NotificationService $notificationService
+    ) {
         $this->broadcastService = $broadcastService;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -36,6 +42,67 @@ class ReturService
             Log::info('✅ Dashboard update triggered successfully for retur: ' . $action);
         } catch (\Exception $e) {
             Log::error('❌ Failed to trigger dashboard update for retur ' . $action . ': ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Trigger retur notification
+     */
+    private function triggerReturNotification(Retur $retur, string $action): void
+    {
+        try {
+            $actionLabels = [
+                'created' => 'membuat retur baru',
+                'approved' => 'menyetujui retur',
+                'rejected' => 'menolak retur',
+                'replacement_sent' => 'mengirim pengganti retur',
+                'completed' => 'menyelesaikan retur',
+            ];
+
+            $actionLabel = isset($actionLabels[$action]) ? $actionLabels[$action] : $action;
+
+            // Ambil data transaksi
+            $transaction = $retur->transaction;
+            $invoiceNo = $transaction ? $transaction->invoice_no : '-';
+            $customerName = $transaction ? $transaction->customer_name : 'Customer';
+
+            // Format created_at
+            $createdAt = $retur->created_at ? $retur->created_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i');
+
+            $notificationData = [
+                'id' => $retur->id,
+                'return_no' => $retur->return_no,
+                'transaction_id' => $retur->transaction_id,
+                'invoice_no' => $invoiceNo,
+                'customer_name' => $customerName,
+                'total_refund' => $retur->total_refund,
+                'status' => $retur->status,
+                'type' => $retur->type,
+                'type_label' => $retur->type === 'refund' ? 'Retur Barang' : 'Tukar Barang',
+                'created_at' => $createdAt,
+                'message' => "Retur baru dari {$customerName} dengan nomor {$retur->return_no} - {$actionLabel}",
+                'action' => $action,
+                'action_label' => $actionLabel,
+                'notification_type' => 'retur_' . $action,
+            ];
+
+            // Simpan ke cache
+            $this->notificationService->addNotification($notificationData);
+            Log::info('💾 Retur notification saved to cache', [
+                'return_no' => $retur->return_no,
+                'id' => $retur->id,
+                'action' => $action
+            ]);
+
+            // Broadcast via WebSocket
+            broadcast(new NewReturnNotification($notificationData));
+            Log::info('🔔 Retur notification broadcasted', [
+                'return_no' => $retur->return_no,
+                'action' => $action
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Failed to broadcast retur notification: ' . $e->getMessage());
         }
     }
 
@@ -133,7 +200,7 @@ class ReturService
                     'qty' => $item['qty'],
                     'price' => $detail->price,
                     'subtotal' => $subtotal,
-                    'note' => $item['note'] ?? null,
+                    'note' => isset($item['note']) ? $item['note'] : null,
                 ]);
             }
 
@@ -149,6 +216,9 @@ class ReturService
             $retur->update([
                 'total_refund' => $totalRefund
             ]);
+
+            // 🔥 TRIGGER NOTIFICATION FOR NEW RETURN
+            $this->triggerReturNotification($retur, 'created');
 
             // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
             $this->triggerDashboardUpdate('retur_created_' . $retur->id);
@@ -208,6 +278,9 @@ class ReturService
                 'type' => $retur->type
             ]);
 
+            // 🔥 TRIGGER NOTIFICATION FOR APPROVED RETURN
+            $this->triggerReturNotification($retur, 'approved');
+
             // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
             $this->triggerDashboardUpdate('retur_approved_' . $retur->id);
 
@@ -228,6 +301,9 @@ class ReturService
             'status' => 'rejected',
             'reject_reason' => $reason,
         ]);
+
+        // 🔥 TRIGGER NOTIFICATION FOR REJECTED RETURN
+        $this->triggerReturNotification($retur, 'rejected');
 
         // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
         $this->triggerDashboardUpdate('retur_rejected_' . $retur->id);
@@ -296,6 +372,9 @@ class ReturService
                 'resi' => $resi
             ]);
 
+            // 🔥 TRIGGER NOTIFICATION FOR REPLACEMENT SENT
+            $this->triggerReturNotification($retur, 'replacement_sent');
+
             // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
             $this->triggerDashboardUpdate('retur_replacement_sent_' . $retur->id);
 
@@ -315,6 +394,9 @@ class ReturService
             'status' => 'completed',
             'completed_at' => now(),
         ]);
+
+        // 🔥 TRIGGER NOTIFICATION FOR COMPLETED RETURN
+        $this->triggerReturNotification($retur, 'completed');
 
         // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
         $this->triggerDashboardUpdate('retur_completed_' . $retur->id);
@@ -339,9 +421,12 @@ class ReturService
             abort(422, 'Retur yang sudah diproses tidak dapat diubah');
         }
         
-        $retur->update([
-            'reason' => $data['reason'] ?? $retur->reason,
-        ]);
+        $updateData = [];
+        if (isset($data['reason'])) {
+            $updateData['reason'] = $data['reason'];
+        }
+        
+        $retur->update($updateData);
 
         // 🔥 TRIGGER REAL-TIME DASHBOARD UPDATE
         $this->triggerDashboardUpdate('retur_updated_' . $retur->id);
